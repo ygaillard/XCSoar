@@ -25,7 +25,10 @@ package org.xcsoar;
 import java.util.Queue;
 import java.util.LinkedList;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
+import android.util.Log;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -44,6 +47,7 @@ public final class BluetoothSensor
   extends BluetoothGattCallback
   implements AndroidSensor
 {
+  private static final String TAG = "XCSoar";
   private final SensorListener listener;
   private final SafeDestruct safeDestruct = new SafeDestruct();
 
@@ -175,6 +179,44 @@ public final class BluetoothSensor
         }
       }
 
+      //XCBK Services
+      if (BluetoothUuids.XCBK_AVIATION_SERVICE.equals(c.getService().getUuid())) {
+        if (BluetoothUuids.XCBK_AVIATION_ENVSENSORS_CHARACTERISTIC.equals(c.getUuid())) {
+          byte [] msg =c.getValue();
+          listener.onTemperature((double)ByteBuffer.wrap(msg, 0, 2).order(ByteOrder.LITTLE_ENDIAN).getShort()/100);
+        }
+        if (BluetoothUuids.XCBK_AVIATION_FLARM_CHARACTERISTIC.equals(c.getUuid())) {
+          byte [] msg =c.getValue();
+          byte[] ID = new byte[6];
+          ByteBuffer.wrap(msg, 11, 6).order(ByteOrder.LITTLE_ENDIAN).get(ID, 0, ID.length);
+          listener.onFlarmTraffic(
+                  (int)msg[0],
+                  ByteBuffer.wrap(msg, 1, 4).order(ByteOrder.LITTLE_ENDIAN).getInt(),
+                  ByteBuffer.wrap(msg, 5, 4).order(ByteOrder.LITTLE_ENDIAN).getInt(),
+                  ByteBuffer.wrap(msg, 9, 2).order(ByteOrder.LITTLE_ENDIAN).getShort(),
+                  new String(ID, java.nio.charset.StandardCharsets.UTF_8),
+                  ByteBuffer.wrap(msg, 17, 2).order(ByteOrder.LITTLE_ENDIAN).getShort(),
+                  (double)ByteBuffer.wrap(msg, 19, 2).order(ByteOrder.LITTLE_ENDIAN).getShort(),
+                  ByteBuffer.wrap(msg, 21, 2).order(ByteOrder.LITTLE_ENDIAN).getShort(),
+                  (double)ByteBuffer.wrap(msg, 23, 2).order(ByteOrder.LITTLE_ENDIAN).getShort()/10,
+                  (int)msg[25]);
+
+        }
+          if (BluetoothUuids.XCBK_AVIATION_LOCATION_CHARACTERISTIC.equals(c.getUuid())) {
+          byte [] msg =c.getValue();
+          float result = ByteBuffer.wrap(msg, 0, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+          listener.onLocationSensor(0,
+                  0,
+                  ByteBuffer.wrap(msg, 0, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat(),
+                  ByteBuffer.wrap(msg, 4, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat(),
+                  false, true,
+                  0,
+                  false, 0,
+                  false, 0,
+                  false, 0);
+        }
+      }
+
       if (BluetoothUuids.FLYTEC_SENSBOX_SERVICE.equals(c.getService().getUuid())) {
         if (BluetoothUuids.FLYTEC_SENSBOX_NAVIGATION_SENSOR_CHARACTERISTIC.equals(c.getUuid())) {
           /* protocol documentation:
@@ -254,6 +296,20 @@ public final class BluetoothSensor
       return;
     }
 
+    boolean mtuConfirmed=false;
+    int mtuRequestCounter=0;
+    while (!mtuConfirmed) {
+      mtuConfirmed=gatt.requestMtu(50);
+      mtuRequestCounter++;
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+    Log.d(TAG, "MTU change reply received after " + mtuRequestCounter + " attempts");
+
+
     BluetoothGattService service = gatt.getService(BluetoothUuids.HEART_RATE_SERVICE);
     if (service != null) {
       BluetoothGattCharacteristic c =
@@ -263,6 +319,43 @@ public final class BluetoothSensor
         enableNotification(c);
       }
     }
+
+    /* enable notifications for XCBK */
+    service = gatt.getService(BluetoothUuids.XCBK_AVIATION_SERVICE);
+    if (service != null) {
+      BluetoothGattCharacteristic c =
+              service.getCharacteristic(BluetoothUuids.XCBK_AVIATION_ATTITUDE_CHARACTERISTIC);
+      if (c != null) {
+        setStateSafe(STATE_READY);
+        enableNotification(c);
+        Log.d(TAG,"Attitude sensor found");
+      }
+      c = service.getCharacteristic(BluetoothUuids.XCBK_AVIATION_PRESSURE_CHARACTERISTIC);
+      if (c != null) {
+        setStateSafe(STATE_READY);
+        enableNotification(c);
+        Log.d(TAG,"Pressure sensor found");
+      }
+      c = service.getCharacteristic(BluetoothUuids.XCBK_AVIATION_ENVSENSORS_CHARACTERISTIC);
+      if (c != null) {
+        setStateSafe(STATE_READY);
+        enableNotification(c);
+        Log.d(TAG,"Envsensors sensor found");
+      }
+      c = service.getCharacteristic(BluetoothUuids.XCBK_AVIATION_FLARM_CHARACTERISTIC);
+      if (c != null) {
+        setStateSafe(STATE_READY);
+        enableNotification(c);
+        Log.d(TAG,"Flarm found");
+      }
+      c = service.getCharacteristic(BluetoothUuids.XCBK_AVIATION_LOCATION_CHARACTERISTIC);
+      if (c != null) {
+        setStateSafe(STATE_READY);
+        enableNotification(c);
+        Log.d(TAG,"Location sensor found");
+      }
+    }
+
 
     /* enable notifications for Flytec Sensbox */
     service = gatt.getService(BluetoothUuids.FLYTEC_SENSBOX_SERVICE);
