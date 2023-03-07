@@ -79,7 +79,7 @@ public:
 
   virtual void OnFlarmTraffic(int AlarmLevel,int RelativeNorth,int RelativeEast,int RelativeVertical,
                               const char *ID,int Track,double TurnRate,int GroundSpeed,double ClimbRate,
-                              int AcftType) noexcept = 0;
+                              int AcftType,bool Stealth) noexcept = 0;
 
   virtual void OnTemperature(Temperature temperature) noexcept = 0;
 

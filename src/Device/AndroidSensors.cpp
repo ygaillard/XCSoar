@@ -449,7 +449,7 @@ DeviceDescriptor::OnGliderLinkTraffic(GliderLinkId id, const char *callsign,
 
 void
 DeviceDescriptor::OnFlarmTraffic(int AlarmLevel,int RelativeNorth,int RelativeEast,int RelativeVertical,const char *ID,
-                                 int Track,double TurnRate,int GroundSpeed,double ClimbRate,int AcftType) noexcept
+                                 int Track,double TurnRate,int GroundSpeed,double ClimbRate,int AcftType,bool Stealth) noexcept
 {
     // PFLAA,<AlarmLevel>,<RelativeNorth>,<RelativeEast>,<RelativeVertical>,
   //   <IDType>,<ID>,<Track>,<TurnRate>,<GroundSpeed>,<ClimbRate>,<AcftType>
@@ -475,11 +475,7 @@ DeviceDescriptor::OnFlarmTraffic(int AlarmLevel,int RelativeNorth,int RelativeEa
     traffic_list.new_traffic.Update(basic.clock);
   }
 
-  //FlarmTraffic::AlarmType test=FlarmTraffic::AlarmType::NONE;
-
   traffic->alarm_level = (FlarmTraffic::AlarmType)AlarmLevel;
-
-  bool stealth = false;
 
   traffic->relative_north = RelativeNorth;
 
@@ -497,9 +493,9 @@ DeviceDescriptor::OnFlarmTraffic(int AlarmLevel,int RelativeNorth,int RelativeEa
 
   traffic->climb_rate = ClimbRate;
 
-  traffic->stealth = stealth;
-
   traffic->type = (FlarmTraffic::AircraftType) AcftType;
+
+  traffic->stealth = Stealth;
 
     // set time of fix to current time
   traffic->valid.Update(basic.clock);

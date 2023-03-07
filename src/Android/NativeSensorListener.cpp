@@ -296,14 +296,15 @@ Java_org_xcsoar_NativeSensorListener_onFlarmTraffic(JNIEnv *env,
                                                     jdouble TurnRate,
                                                     jint GroundSpeed,
                                                     jdouble ClimbRate,
-                                                    jint AcftType)
+                                                    jint AcftType,
+                                                    jboolean Stealth)
 {
   jlong ptr = env->GetLongField(obj, NativeSensorListener::ptr_field);
   if (ptr == 0)
     return;
 
   auto &listener = *(SensorListener *)ptr;
-  listener.OnFlarmTraffic(AlarmLevel,RelativeNorth,RelativeEast,RelativeVertical,Java::String::GetUTFChars(env, ID).c_str(),Track,TurnRate,GroundSpeed,ClimbRate,AcftType);
+  listener.OnFlarmTraffic(AlarmLevel,RelativeNorth,RelativeEast,RelativeVertical,Java::String::GetUTFChars(env, ID).c_str(),Track,TurnRate,GroundSpeed,ClimbRate,AcftType,Stealth);
 }
 
 gcc_visibility_default

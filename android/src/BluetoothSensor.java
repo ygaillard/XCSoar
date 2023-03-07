@@ -199,7 +199,8 @@ public final class BluetoothSensor
                   (double)ByteBuffer.wrap(msg, 19, 2).order(ByteOrder.LITTLE_ENDIAN).getShort(),
                   ByteBuffer.wrap(msg, 21, 2).order(ByteOrder.LITTLE_ENDIAN).getShort(),
                   (double)ByteBuffer.wrap(msg, 23, 2).order(ByteOrder.LITTLE_ENDIAN).getShort()/10,
-                  (int)msg[25]);
+                  (int)msg[25],
+                  false);
 
         }
           if (BluetoothUuids.XCBK_AVIATION_LOCATION_CHARACTERISTIC.equals(c.getUuid())) {
